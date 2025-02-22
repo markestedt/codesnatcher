@@ -1,4 +1,4 @@
-package main
+package ai
 
 import (
 	"bytes"
@@ -10,28 +10,28 @@ import (
 	"os"
 )
 
-type OpenAIRequest struct {
+type openAIRequest struct {
 	Model    string    `json:"model"`
-	Messages []Message `json:"messages"`
+	Messages []message `json:"messages"`
 }
 
-type Message struct {
+type message struct {
 	Role    string    `json:"role"`
-	Content []Content `json:"content"`
+	Content []content `json:"content"`
 }
 
-type Content struct {
+type content struct {
 	Type     string `json:"type"`
 	Text     string `json:"text,omitempty"`
-	ImageURL *Image `json:"image_url,omitempty"`
+	ImageURL *image `json:"image_url,omitempty"`
 }
 
-type Image struct {
+type image struct {
 	Url    string `json:"url,omitempty"`
 	Base64 string `json:"base64,omitempty"`
 }
 
-type OpenAIResponse struct {
+type openAIResponse struct {
 	Choices []struct {
 		Message struct {
 			Content string `json:"content"`
@@ -42,76 +42,25 @@ type OpenAIResponse struct {
 	} `json:"error,omitempty"`
 }
 
-type ExtractedCode struct {
+type extractedCode struct {
 	Language string `json:"language"`
 	Code     string `json:"code"`
 	Tag      string `json:"tag"`
 }
 
-type CodeResponse struct {
-	Code string `json:"code"`
-}
+type Service struct{}
 
-func (app *application) getIndexHandler(w http.ResponseWriter, r *http.Request) {
-	app.templates.ExecuteTemplate(w, "index", nil)
-}
-
-func (app *application) postImageHandler(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
-	// Write straight to disk
-	err := r.ParseMultipartForm(0)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-
-		return
-	}
-
-	// We always want to remove the multipart file as we're copying
-	// the contents to another file anyway
-	defer func() {
-		if remErr := r.MultipartForm.RemoveAll(); remErr != nil {
-			// Log error?
-		}
-	}()
-
-	// Start reading multi-part file under id "fileupload"
-	f, _, err := r.FormFile("image")
-	if err != nil {
-		if err == http.ErrMissingFile {
-			http.Error(w, "Request did not contain a file", http.StatusBadRequest)
-		} else {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		}
-
-		return
-	}
-	defer f.Close()
-
-	buf := bytes.NewBuffer(nil)
-	if _, err := io.Copy(buf, f); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
-
-	code, err := extractCodeFromImage(buf.Bytes())
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
-
-	json.NewEncoder(w).Encode(code)
-}
-
-func extractCodeFromImage(imageData []byte) (*ExtractedCode, error) {
+func (s Service) ExtractCodeFromImage(imageData []byte) (*extractedCode, error) {
 	// Encode image to base64
 	base64Data := base64.StdEncoding.EncodeToString(imageData)
 
 	// Construct the API request
-	request := OpenAIRequest{
+	request := openAIRequest{
 		Model: "gpt-4o-mini",
-		Messages: []Message{
+		Messages: []message{
 			{
 				Role: "user",
-				Content: []Content{
+				Content: []content{
 					{
 						Type: "text",
 						Text: `Extract the code from the provided image and determine the programming language. Consider syntax, keywords, and formatting to ensure accuracy.
@@ -129,7 +78,7 @@ func extractCodeFromImage(imageData []byte) (*ExtractedCode, error) {
 					},
 					{
 						Type: "image_url",
-						ImageURL: &Image{
+						ImageURL: &image{
 							Url: fmt.Sprintf("data:image/jpeg;base64,%s", base64Data),
 						},
 					},
@@ -174,7 +123,7 @@ func extractCodeFromImage(imageData []byte) (*ExtractedCode, error) {
 	}
 
 	// Parse response
-	var apiResponse OpenAIResponse
+	var apiResponse openAIResponse
 	if err := json.Unmarshal(body, &apiResponse); err != nil {
 		return nil, fmt.Errorf("error parsing response: %v", err)
 	}
@@ -189,7 +138,7 @@ func extractCodeFromImage(imageData []byte) (*ExtractedCode, error) {
 		return nil, fmt.Errorf("no content in response")
 	}
 
-	var extractedCode ExtractedCode
+	var extractedCode extractedCode
 	if err := json.Unmarshal([]byte(apiResponse.Choices[0].Message.Content), &extractedCode); err != nil {
 		return nil, fmt.Errorf("error parsing structured response: %v", err)
 	}

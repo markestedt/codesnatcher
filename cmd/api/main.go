@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 
 	"github.com/joho/godotenv"
+	"github.com/markestedt/codesnatcher/internal/ai"
 )
 
 //go:embed static
@@ -22,6 +23,7 @@ var templates embed.FS
 
 type application struct {
 	templates *template.Template
+	aiService *ai.Service
 }
 
 func main() {
@@ -31,6 +33,7 @@ func main() {
 
 	app := &application{
 		templates: t,
+		aiService: &ai.Service{},
 	}
 
 	fSys, err := fs.Sub(static, ".")

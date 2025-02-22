@@ -1,0 +1,45 @@
+.container {
+    margin: 0 auto;
+    padding: 2rem;
+    text-align: center;
+}
+
+.file-input {
+    margin: 2rem 0 1rem 0;
+}
+
+.upload-area {
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    padding: 2rem;
+    margin: 1rem 0;
+    transition: border-color 0.3s ease;
+}
+
+.upload-area:hover {
+    border-color: #1095c1;
+}
+
+.preview {
+    max-width: 100%;
+    max-height: 300px;
+    display: none;
+    margin: 1rem auto;
+}
+
+.result {
+    margin-top: 2rem;
+    text-align: left;
+    display: none;
+}
+
+.loading {
+    display: none;
+    margin: 1rem 0;
+}
+
+.error {
+    color: #ff4444;
+    display: none;
+    margin: 1rem 0;
+}
